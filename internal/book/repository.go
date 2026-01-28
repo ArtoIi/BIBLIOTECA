@@ -9,7 +9,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, b Book) (string, error)
 	FindId(ctx context.Context, id string) (*Book, error)
-	Update(ctx context.Context, id string, b Book) ([]*Book, error)
+	Update(ctx context.Context, id string, b *Book) error
 }
 
 type BookRepository struct {
@@ -59,16 +59,16 @@ func (r BookRepository) FindId(ctx context.Context, id string) (*Book, error) {
 	}, nil
 }
 
-func (r *BookRepository) Update(ctx context.Context, id string, b Book) ([]*Book, error) {
+func (r *BookRepository) Update(ctx context.Context, id string, b *Book) error {
 	docref := r.client.Collection("biblioteca").Doc(id)
 	docSnap, err := docref.Get(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var before Book
 	if err := docSnap.DataTo(&before); err != nil {
-		return nil, err
+		return err
 	}
 
 	var updates []firestore.Update
@@ -87,19 +87,19 @@ func (r *BookRepository) Update(ctx context.Context, id string, b Book) ([]*Book
 
 	if len(updates) > 0 {
 		if _, err := docref.Update(ctx, updates); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	docSnapAfter, err := docref.Get(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var after Book
 	if err := docSnapAfter.DataTo(&after); err != nil {
-		return nil, err
+		return err
 	}
 
-	return []*Book{&before, &after}, nil
+	return nil
 }

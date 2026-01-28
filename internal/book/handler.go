@@ -3,6 +3,8 @@ package book
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/ArtoIi/BIBLIOTECA/internal/web"
 )
 
 type BookHandler struct {
@@ -18,6 +20,7 @@ func (h BookHandler) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /book", h.Create)
 	mux.HandleFunc("GET /book/{id}", h.Get)
 	mux.HandleFunc("PUT /book/{id}", h.Loan)
+	mux.HandleFunc("PUT /book/{id}/return", h.Return)
 
 }
 
@@ -26,47 +29,50 @@ func (h BookHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	b, err := h.service.Get(r.Context(), endPointId)
 	if err != nil {
-		http.Error(w, "livro nao encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(b)
+	web.Respond(w, http.StatusOK, b)
 
 }
 func (h BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var b Book
 
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
-		http.Error(w, "pedido errado", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	id, err := h.service.NewBook(r.Context(), b)
 	if err != nil {
-		http.Error(w, "error ao salvar", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusBadRequest, err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(id)
-
+	web.Respond(w, http.StatusOK, id)
 }
 
 func (h BookHandler) Loan(w http.ResponseWriter, r *http.Request) {
 	endPointId := r.PathValue("id")
 	var recivedB Book
 	if err := json.NewDecoder(r.Body).Decode(&recivedB); err != nil {
-		http.Error(w, "pedido errado", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.service.LoanBook(r.Context(), endPointId, recivedB); err != nil {
-		http.Error(w, "erro ao salvar", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusBadRequest, err)
 		return
 	}
+	web.Respond(w, http.StatusOK, nil)
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+func (h BookHandler) Return(w http.ResponseWriter, r *http.Request) {
+	endPointId := r.PathValue("id")
+
+	if err := h.service.ReturnBook(r.Context(), endPointId); err != nil {
+		web.RespondError(w, http.StatusBadRequest, err)
+		return
+	}
+	web.Respond(w, http.StatusOK, nil)
 }

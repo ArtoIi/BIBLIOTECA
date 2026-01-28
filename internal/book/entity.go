@@ -50,3 +50,15 @@ func (b *Book) Emprestar(nome string) error {
 		return errors.New("erro ao alugar")
 	}
 }
+func (b *Book) Devolver() error {
+	switch b.Status {
+	case "disponivel":
+		return errors.New("Livro já disponivel")
+	case "emprestado":
+		b.Status = "disponivel"
+		b.Locatario = ""
+		return nil
+	default:
+		return errors.New("erro ao devolver")
+	}
+}
